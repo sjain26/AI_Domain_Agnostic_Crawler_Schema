@@ -352,6 +352,7 @@ python -c "from crawler import WebCrawler; import asyncio; asyncio.run(WebCrawle
 - **Multi-language**: Support non-English content
 - **Robots.txt**: Respect robots.txt rules
 
+<<<<<<< HEAD
 ## Streamlit Cloud Deployment
 
 ### Deploy to Streamlit Cloud
@@ -386,10 +387,7 @@ python -c "from crawler import WebCrawler; import asyncio; asyncio.run(WebCrawle
 - Or run both locally for testing
 
 ## License
+=======
+>>>>>>> 1c77b76561614bc9d987e09fc8b01cda52e40aaf
 
-This project is provided as-is for educational and development purposes.
-
-## Support
-
-For issues or questions, please refer to the project documentation or create an issue in the repository.
 
