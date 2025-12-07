@@ -6,7 +6,7 @@ import json
 
 
 class RAGPipeline:
-    """RAG pipeline that retrieves context and generates answers using LLM."""
+    
     
     def __init__(
         self,
