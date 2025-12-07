@@ -364,17 +364,6 @@ python -c "from crawler import WebCrawler; import asyncio; asyncio.run(WebCrawle
 
 
 
-### Live Demo
-
-🌐 **Live Streamlit App**: [https://ai-domain-agnostic-crawler.streamlit.app/](https://ai-domain-agnostic-crawler.streamlit.app/)
-
-The live app is deployed and ready to use! You can:
-- Crawl URLs and extract structured data
-- Search crawled content using semantic similarity
-- Ask questions using RAG pipeline
-- Compare products/services
-- Browse data by industry
-
 
 
 
