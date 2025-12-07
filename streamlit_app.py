@@ -1,4 +1,4 @@
-"""Streamlit demo app for AI_Domain_Agnostic_Crawler - Standalone version without API."""
+"""Streamlit demo app for AI_Domain_Agnostic_Crawler """
 import streamlit as st
 import json
 from typing import Dict, Any, Optional, List
