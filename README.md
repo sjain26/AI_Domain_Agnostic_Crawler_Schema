@@ -352,11 +352,5 @@ python -c "from crawler import WebCrawler; import asyncio; asyncio.run(WebCrawle
 - **Multi-language**: Support non-English content
 - **Robots.txt**: Respect robots.txt rules
 
-## License
 
-This project is provided as-is for educational and development purposes.
-
-## Support
-
-For issues or questions, please refer to the project documentation or create an issue in the repository.
 
