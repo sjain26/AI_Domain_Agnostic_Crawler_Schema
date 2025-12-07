@@ -1,3 +1,4 @@
-# Additional system packages if needed
 # This file is optional for Streamlit Cloud
-
+# Leave empty or add system packages if needed
+# Example: 
+# libgomp1
