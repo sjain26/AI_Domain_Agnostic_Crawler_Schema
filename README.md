@@ -363,7 +363,6 @@ python -c "from crawler import WebCrawler; import asyncio; asyncio.run(WebCrawle
 - **Multi-language**: Support non-English content
 - **Robots.txt**: Respect robots.txt rules
 
-<<<<<<< HEAD
 ## Streamlit Cloud Deployment
 
 ### Deploy to Streamlit Cloud
@@ -403,13 +402,6 @@ The live app is deployed and ready to use! You can:
 - Compare products/services
 - Browse data by industry
 
-### Note
-- The Streamlit app requires the FastAPI server to be running
-- You can deploy the FastAPI server separately (e.g., on Render, Railway, or Heroku)
-- Or run both locally for testing
 
-## License
-=======
->>>>>>> 1c77b76561614bc9d987e09fc8b01cda52e40aaf
 
 
