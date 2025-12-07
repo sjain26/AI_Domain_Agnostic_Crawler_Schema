@@ -361,35 +361,8 @@ python -c "from crawler import WebCrawler; import asyncio; asyncio.run(WebCrawle
 - **Webhook Support**: Notify on crawl completion
 - **Advanced Schema Detection**: Support more Schema.org types
 - **Multi-language**: Support non-English content
-- **Robots.txt**: Respect robots.txt rules
 
-## Streamlit Cloud Deployment
 
-### Deploy to Streamlit Cloud
-
-1. **Push your code to GitHub** (already done)
-   - Repository: `https://github.com/sjain26/AI_Domain_Agnostic_Crawler_Schema`
-
-2. **Go to Streamlit Cloud**
-   - Visit: https://share.streamlit.io/
-   - Sign in with GitHub
-
-3. **Deploy your app**
-   - Click "New app"
-   - Select your repository: `sjain26/AI_Domain_Agnostic_Crawler_Schema`
-   - Main file path: `streamlit_app.py`
-   - Branch: `main`
-
-4. **Configure Environment Variables**
-   Add these in Streamlit Cloud settings:
-   ```
-   API_BASE_URL=https://your-api-server-url.com
-   ```
-   (If your API is also deployed, use that URL. Otherwise, you'll need to deploy the FastAPI server separately)
-
-5. **Deploy**
-   - Click "Deploy"
-   - Your app will be available at: `https://your-app-name.streamlit.app`
 
 ### Live Demo
 
