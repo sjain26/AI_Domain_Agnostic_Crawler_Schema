@@ -57,7 +57,7 @@ def init_components():
             openai_api_key=settings.openai_api_key,
             groq_api_key=settings.groq_api_key,
             groq_model=settings.groq_model,
-            llm_provider=settings.llm_provider
+            provider=settings.llm_provider
         )
         
         # Initialize Schema Mapper
