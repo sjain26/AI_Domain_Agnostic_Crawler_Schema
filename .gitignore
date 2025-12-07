@@ -1,0 +1,52 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual Environment
+venv/
+env/
+ENV/
+.venv
+
+# Logs
+*.log
+*.log.*
+
+# Environment variables
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test files (optional - remove if not needed)
+test_*.py
+*_test.py
+quick_*_test.py
+
+# Documentation (keep README.md)
+RAG_EXPLANATION.md
+ENDPOINTS_TEST_REPORT.md
+SEARCH_EXPLANATION.md
+
+# Example files
+example_usage.py
+
+# Temporary files
+=2.0.0
+*.tmp
+*.bak
