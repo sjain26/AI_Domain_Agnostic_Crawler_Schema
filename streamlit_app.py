@@ -133,7 +133,7 @@ async def crawl_and_extract(url: str, force_refresh: bool = False):
     try:
         # Check if already exists
         if not force_refresh:
-            existing = storage.get_crawled_data_by_url(url)
+            existing = storage.get_by_url(url)
             if existing:
                 return {
                     "success": True,
@@ -178,8 +178,8 @@ async def crawl_and_extract(url: str, force_refresh: bool = False):
             industry=industry,
             schema_type=schema_type,
             extracted_data=extracted_data,
-            jsonld=jsonld,
-            metadata=metadata
+            metadata=metadata,
+            text_content=text_content
         )
         
         return {
