@@ -5,7 +5,7 @@ from typing import Optional
 
 
 class Settings(BaseSettings):
-    """Application settings."""
+
     
     # OpenAI Configuration
     openai_api_key: str = os.getenv("OPENAI_API_KEY", "")
