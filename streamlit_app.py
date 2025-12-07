@@ -13,8 +13,9 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Fixed API URL
-API_BASE_URL = "http://localhost:8000"
+# API URL - can be configured via environment variable or defaults to localhost
+import os
+API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
 
 # Custom CSS
 st.markdown("""
@@ -43,13 +44,6 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-def check_api_health():
-    """Check if API is running."""
-    try:
-        response = requests.get(f"{API_BASE_URL}/health", timeout=5)
-        return response.status_code == 200
-    except:
-        return False
 
 def crawl_url(url: str, force_refresh: bool = False):
     """Crawl a URL."""
@@ -146,18 +140,7 @@ st.markdown('<h1 class="main-header">🕷️ AI_Domain_Agnostic_Crawler</h1>', u
 
 # Sidebar
 with st.sidebar:
-    st.header("⚙️ Status")
-    
-    # API Health Check
-    if check_api_health():
-        st.success("✅ API Server: Running")
-    else:
-        st.error("❌ API Server: Not Running")
-        st.info("Please start the server:")
-        st.code("uvicorn main:app --host 0.0.0.0 --port 8000", language="bash")
-        st.stop()
-    
-    st.divider()
+    st.header("⚙️ Info")
     
     st.header("📚 Quick Links")
     st.markdown(f"""
