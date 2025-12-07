@@ -7,7 +7,7 @@ import re
 
 
 class WebCrawler:
-    """Domain-agnostic web crawler."""
+    
     
     def __init__(self, user_agent: str, timeout: int = 30):
         """Initialize the crawler."""

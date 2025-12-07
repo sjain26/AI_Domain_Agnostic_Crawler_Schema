@@ -1,4 +1,4 @@
-"""Streamlit demo app for AI_Domain_Agnostic_Crawler - Standalone version without API."""
+"""Streamlit demo app for AI_Domain_Agnostic_Crawler """
 import streamlit as st
 import json
 from typing import Dict, Any, Optional, List
@@ -239,7 +239,7 @@ st.markdown('<h1 class="main-header">🕷️ AI_Domain_Agnostic_Crawler</h1>', u
 # Sidebar
 with st.sidebar:
     st.header("⚙️ Info")
-    st.success("✅ Standalone Mode - No API Server Required")
+    
     
     st.divider()
     

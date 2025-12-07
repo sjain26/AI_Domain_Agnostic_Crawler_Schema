@@ -12,7 +12,7 @@ import uuid
 
 
 class StorageManager:
-    """Manages both PostgreSQL and Qdrant storage."""
+    
     
     def __init__(
         self,
