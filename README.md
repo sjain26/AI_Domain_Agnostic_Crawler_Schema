@@ -2,6 +2,17 @@
 
 A sophisticated web crawler that uses AI to extract, normalize, and segment structured data from any public website using Schema.org ontologies. The system adapts dynamically across industries using semantic similarity and LLM reasoning.
 
+## 🌐 Live Demo
+
+**Streamlit App**: [https://ai-domain-agnostic-crawler.streamlit.app/](https://ai-domain-agnostic-crawler.streamlit.app/)
+
+Try it out! The app allows you to:
+- 🕷️ Crawl and extract data from any URL
+- 🔍 Search crawled content semantically
+- 🤖 Ask questions using RAG (Retrieval-Augmented Generation)
+- 📊 Compare products/services
+- 📁 Browse crawled data by industry
+
 ## Features
 
 - **Domain-Agnostic**: Automatically adapts to any industry (Banking, E-Commerce, Insurance, etc.)
@@ -380,6 +391,17 @@ python -c "from crawler import WebCrawler; import asyncio; asyncio.run(WebCrawle
 5. **Deploy**
    - Click "Deploy"
    - Your app will be available at: `https://your-app-name.streamlit.app`
+
+### Live Demo
+
+🌐 **Live Streamlit App**: [https://ai-domain-agnostic-crawler.streamlit.app/](https://ai-domain-agnostic-crawler.streamlit.app/)
+
+The live app is deployed and ready to use! You can:
+- Crawl URLs and extract structured data
+- Search crawled content using semantic similarity
+- Ask questions using RAG pipeline
+- Compare products/services
+- Browse data by industry
 
 ### Note
 - The Streamlit app requires the FastAPI server to be running
