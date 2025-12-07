@@ -1,9 +1,16 @@
-"""Streamlit demo app for AI_Domain_Agnostic_Crawler."""
+"""Streamlit demo app for AI_Domain_Agnostic_Crawler - Standalone version without API."""
 import streamlit as st
-import requests
 import json
-from typing import Dict, Any
-import time
+from typing import Dict, Any, Optional, List
+import os
+
+# Import project modules directly
+from crawler import WebCrawler
+from schema_mapper import SchemaMapper
+from storage import StorageManager
+from rag import RAGPipeline
+from config import settings
+from llm_client import LLMClient
 
 # Page configuration
 st.set_page_config(
@@ -12,14 +19,6 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
-
-# API URL - must be configured via environment variable for Streamlit Cloud
-import os
-API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
-
-# Show warning if using default localhost in production
-if API_BASE_URL == "http://localhost:8000" and os.getenv("STREAMLIT_CLOUD"):
-    st.warning("⚠️ API_BASE_URL not set! Please configure it in Streamlit Cloud settings.")
 
 # Custom CSS
 st.markdown("""
@@ -48,96 +47,191 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-
-def crawl_url(url: str, force_refresh: bool = False):
-    """Crawl a URL."""
+# Initialize components (cached to avoid re-initialization)
+@st.cache_resource
+def init_components():
+    """Initialize all components."""
     try:
-        response = requests.post(
-            f"{API_BASE_URL}/crawl",
-            json={"url": url, "force_refresh": force_refresh},
-            timeout=180
+        # Initialize LLM Client
+        llm_client = LLMClient(
+            openai_api_key=settings.openai_api_key,
+            groq_api_key=settings.groq_api_key,
+            groq_model=settings.groq_model,
+            llm_provider=settings.llm_provider
         )
-        if response.status_code == 200:
-            return response.json()
-        else:
-            try:
-                error_data = response.json()
-                error_msg = error_data.get("detail", response.text)
-            except:
-                error_msg = response.text
-            return {"error": error_msg, "status_code": response.status_code}
-    except requests.exceptions.Timeout:
-        return {"error": "Request timeout - URL took too long to crawl. Try again or use a different URL."}
-    except requests.exceptions.ConnectionError:
-        return {"error": f"Connection error - Cannot connect to API server at {API_BASE_URL}. Make sure the server is running."}
+        
+        # Initialize Schema Mapper
+        schema_mapper = SchemaMapper(
+            openai_api_key=settings.openai_api_key,
+            groq_api_key=settings.groq_api_key,
+            groq_model=settings.groq_model,
+            embedding_model=settings.embedding_model,
+            llm_provider=settings.llm_provider
+        )
+        
+        # Initialize Storage Manager
+        storage = StorageManager(
+            postgres_config={
+                "host": settings.postgres_host,
+                "port": settings.postgres_port,
+                "user": settings.postgres_user,
+                "password": settings.postgres_password,
+                "database": settings.postgres_database,
+                "url": settings.postgres_url
+            },
+            qdrant_config={
+                "host": settings.qdrant_host,
+                "port": settings.qdrant_port,
+                "url": settings.qdrant_url,
+                "api_key": settings.qdrant_api_key,
+                "collection_name": settings.qdrant_collection_name
+            },
+            embedding_model=settings.embedding_model
+        )
+        
+        # Initialize RAG Pipeline
+        rag_pipeline = RAGPipeline(
+            openai_api_key=settings.openai_api_key,
+            groq_api_key=settings.groq_api_key,
+            groq_model=settings.groq_model,
+            storage_manager=storage,
+            llm_provider=settings.llm_provider
+        )
+        
+        # Initialize Crawler
+        crawler = WebCrawler(
+            user_agent=settings.crawler_user_agent,
+            timeout=settings.crawler_timeout
+        )
+        
+        return {
+            "crawler": crawler,
+            "schema_mapper": schema_mapper,
+            "storage": storage,
+            "rag_pipeline": rag_pipeline,
+            "llm_client": llm_client
+        }
     except Exception as e:
-        return {"error": f"Error: {str(e)}"}
+        st.error(f"❌ Error initializing components: {str(e)}")
+        return None
+
+# Initialize components
+components = init_components()
+
+if components is None:
+    st.error("Failed to initialize application components. Please check your configuration.")
+    st.stop()
+
+crawler = components["crawler"]
+schema_mapper = components["schema_mapper"]
+storage = components["storage"]
+rag_pipeline = components["rag_pipeline"]
+
+# Helper functions
+async def crawl_and_extract(url: str, force_refresh: bool = False):
+    """Crawl URL and extract data."""
+    try:
+        # Check if already exists
+        if not force_refresh:
+            existing = storage.get_crawled_data_by_url(url)
+            if existing:
+                return {
+                    "success": True,
+                    "url": url,
+                    "page_id": existing["id"],
+                    "industry": existing["industry"],
+                    "schema_type": existing["schema_type"],
+                    "extracted_data": existing["extracted_data"],
+                    "jsonld": existing["extracted_data"],
+                    "cached": True
+                }
+        
+        # Crawl URL
+        crawl_result = await crawler.crawl(url)
+        
+        if not crawl_result["success"]:
+            return {"success": False, "error": crawl_result.get("error", "Failed to crawl URL")}
+        
+        # Classify industry
+        text_content = crawl_result.get("text", "")
+        industry = schema_mapper.classify_industry(text_content)
+        
+        # Detect schema type
+        schema_type = schema_mapper.detect_schema_type(text_content, industry)
+        
+        # Extract structured data using LLM
+        extracted_data = schema_mapper.extract_with_llm(
+            crawl_result.get("html", ""),
+            text_content,
+            schema_type
+        )
+        
+        # Normalize to JSON-LD
+        jsonld = schema_mapper.normalize_to_jsonld(extracted_data, url)
+        
+        # Save to storage
+        metadata = crawl_result.get("metadata", {})
+        page_id = storage.save_crawled_data(
+            url=url,
+            title=metadata.get("title", ""),
+            description=metadata.get("description", ""),
+            industry=industry,
+            schema_type=schema_type,
+            extracted_data=extracted_data,
+            jsonld=jsonld,
+            metadata=metadata
+        )
+        
+        return {
+            "success": True,
+            "url": url,
+            "page_id": page_id,
+            "industry": industry,
+            "schema_type": schema_type,
+            "extracted_data": extracted_data,
+            "jsonld": jsonld,
+            "cached": False
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
 
 def search_similar(query: str, limit: int = 10):
     """Search for similar content."""
     try:
-        response = requests.post(
-            f"{API_BASE_URL}/search",
-            json={"query": query, "limit": limit},
-            timeout=30
-        )
-        if response.status_code == 200:
-            return response.json()
-        else:
-            try:
-                error_data = response.json()
-                error_msg = error_data.get("detail", response.text)
-            except:
-                error_msg = response.text
-            return {"error": error_msg, "status_code": response.status_code}
-    except requests.exceptions.Timeout:
-        return {"error": "Request timeout - Search took too long. Try again."}
-    except requests.exceptions.ConnectionError:
-        return {"error": f"Connection error - Cannot connect to API server at {API_BASE_URL}. Make sure the server is running."}
+        results = storage.search_similar(query, limit=limit)
+        return {
+            "results": results,
+            "count": len(results)
+        }
     except Exception as e:
-        return {"error": f"Error: {str(e)}"}
+        return {"error": str(e), "results": [], "count": 0}
 
-def rag_query(query: str, industry: str = None, include_sources: bool = True):
+def rag_query_func(query: str, industry: Optional[str] = None, include_sources: bool = True):
     """RAG query."""
     try:
-        data = {"query": query, "include_sources": include_sources}
-        if industry:
-            data["industry"] = industry
-        response = requests.post(
-            f"{API_BASE_URL}/rag/query",
-            json=data,
-            timeout=60
-        )
-        return response.json() if response.status_code == 200 else {"error": response.text}
+        result = rag_pipeline.query(query, industry=industry, include_sources=include_sources)
+        return result
     except Exception as e:
-        return {"error": str(e)}
+        return {"error": str(e), "answer": "", "sources": []}
 
-def rag_compare(query: str, industry: str = None):
+def rag_compare_func(query: str, industry: Optional[str] = None):
     """RAG compare products."""
     try:
-        data = {"query": query}
-        if industry:
-            data["industry"] = industry
-        response = requests.post(
-            f"{API_BASE_URL}/rag/compare",
-            json=data,
-            timeout=60
-        )
-        return response.json() if response.status_code == 200 else {"error": response.text}
+        result = rag_pipeline.compare(query, industry=industry)
+        return result
     except Exception as e:
-        return {"error": str(e)}
+        return {"error": str(e), "answer": "", "items_compared": 0}
 
-def get_by_industry(industry: str, limit: int = 100):
+def get_by_industry_func(industry: str, limit: int = 100):
     """Get pages by industry."""
     try:
-        response = requests.get(
-            f"{API_BASE_URL}/industry/{industry}",
-            params={"limit": limit},
-            timeout=30
-        )
-        return response.json() if response.status_code == 200 else {"error": response.text}
+        results = storage.get_by_industry(industry, limit=limit)
+        return {
+            "results": results,
+            "count": len(results)
+        }
     except Exception as e:
-        return {"error": str(e)}
+        return {"error": str(e), "results": [], "count": 0}
 
 # Main App
 st.markdown('<h1 class="main-header">🕷️ AI_Domain_Agnostic_Crawler</h1>', unsafe_allow_html=True)
@@ -145,26 +239,7 @@ st.markdown('<h1 class="main-header">🕷️ AI_Domain_Agnostic_Crawler</h1>', u
 # Sidebar
 with st.sidebar:
     st.header("⚙️ Info")
-    
-    # Show API URL info
-    if API_BASE_URL != "http://localhost:8000":
-        st.info(f"🔗 API: {API_BASE_URL}")
-    else:
-        st.warning("⚠️ Using default API URL. Set API_BASE_URL environment variable for production.")
-    
-    st.header("📚 Quick Links")
-    st.markdown(f"""
-    - [API Documentation]({API_BASE_URL}/docs)
-    - [Health Check]({API_BASE_URL}/health)
-    - [API Root]({API_BASE_URL}/)
-    """)
-    
-    st.divider()
-    st.markdown("""
-    ### 📝 Configuration
-    For Streamlit Cloud, set environment variable:
-    - `API_BASE_URL`: Your deployed API server URL
-    """)
+    st.success("✅ Standalone Mode - No API Server Required")
     
     st.divider()
     
@@ -218,16 +293,14 @@ with tab1:
     if st.button("🚀 Crawl URL", type="primary", use_container_width=True):
         if url:
             with st.spinner("Crawling URL... This may take 30-60 seconds"):
-                result = crawl_url(url, force_refresh)
+                import asyncio
+                result = asyncio.run(crawl_and_extract(url, force_refresh))
                 
-                # Check for actual errors (not just the presence of error key)
-                if "error" in result and result.get("error") is not None:
-                    error_msg = result.get("error", "Unknown error")
-                    st.error(f"❌ Error: {error_msg}")
-                    if result.get("status_code"):
-                        st.info(f"Status Code: {result.get('status_code')}")
-                elif result.get("success"):
-                    st.success("✅ URL crawled successfully!")
+                if result.get("success"):
+                    if result.get("cached"):
+                        st.info("ℹ️ Using cached data. Check 'Force Refresh' to re-crawl.")
+                    else:
+                        st.success("✅ URL crawled successfully!")
                     
                     # Display results
                     col1, col2, col3 = st.columns(3)
@@ -236,7 +309,7 @@ with tab1:
                     with col2:
                         st.metric("Schema Type", result.get("schema_type", "N/A"))
                     with col3:
-                        st.metric("Page ID", result.get("page_id", "N/A")[:8] + "...")
+                        st.metric("Page ID", result.get("page_id", "N/A")[:8] + "..." if result.get("page_id") else "N/A")
                     
                     # Extracted Data
                     st.subheader("📋 Extracted Data")
@@ -247,7 +320,8 @@ with tab1:
                     with st.expander("📄 View JSON-LD"):
                         st.json(result.get("jsonld", {}))
                 else:
-                    st.error("Failed to crawl URL")
+                    error_msg = result.get("error", "Unknown error")
+                    st.error(f"❌ Error: {error_msg}")
         else:
             st.warning("Please enter a URL")
 
@@ -273,13 +347,9 @@ with tab2:
             with st.spinner("Searching..."):
                 results = search_similar(search_query, search_limit)
                 
-                # Check for errors first
                 if "error" in results and results.get("error") is not None:
                     error_msg = results.get("error", "Unknown error")
                     st.error(f"❌ Error: {error_msg}")
-                    if results.get("status_code"):
-                        st.info(f"Status Code: {results.get('status_code')}")
-                # Check if we have valid results
                 elif "results" in results or "count" in results:
                     count = results.get("count", len(results.get("results", [])))
                     st.success(f"✅ Found {count} results")
@@ -311,7 +381,6 @@ with tab2:
                     else:
                         st.info("No results found. Try crawling some URLs first.")
                 else:
-                    # Debug: show what we received
                     st.warning("Unexpected response format.")
                     with st.expander("Debug: View Response"):
                         st.json(results)
@@ -346,7 +415,7 @@ with tab3:
         if rag_query_text:
             with st.spinner("Generating answer... This may take 10-30 seconds"):
                 industry_filter = rag_industry if rag_industry else None
-                result = rag_query(rag_query_text, industry_filter, include_sources)
+                result = rag_query_func(rag_query_text, industry_filter, include_sources)
                 
                 if "error" in result:
                     st.error(f"❌ Error: {result['error']}")
@@ -360,7 +429,7 @@ with tab3:
                     # Sources
                     if include_sources and result.get("sources"):
                         st.subheader("📚 Sources")
-                        sources_count = result.get("sources_count", 0)
+                        sources_count = result.get("sources_count", len(result.get("sources", [])))
                         st.info(f"Found {sources_count} source(s)")
                         
                         for i, source in enumerate(result.get("sources", []), 1):
@@ -400,7 +469,7 @@ with tab4:
         if compare_query:
             with st.spinner("Comparing... This may take 15-30 seconds"):
                 industry_filter = compare_industry if compare_industry else None
-                result = rag_compare(compare_query, industry_filter)
+                result = rag_compare_func(compare_query, industry_filter)
                 
                 if "error" in result:
                     st.error(f"❌ Error: {result['error']}")
@@ -444,7 +513,7 @@ with tab5:
             st.info("Select a specific industry to view data")
         else:
             with st.spinner("Loading data..."):
-                result = get_by_industry(industry_filter, limit)
+                result = get_by_industry_func(industry_filter, limit)
                 
                 if "error" in result:
                     st.error(f"❌ Error: {result['error']}")
@@ -483,6 +552,6 @@ st.markdown("""
 <div style='text-align: center; color: #666; padding: 2rem;'>
     <p>AI_Domain_Agnostic_Crawler - Schema.org Normalization</p>
     <p>Built with FastAPI, Crawl4AI, OpenAI/Groq, PostgreSQL, and Qdrant</p>
+    <p>Standalone Mode - No API Server Required</p>
 </div>
 """, unsafe_allow_html=True)
-
