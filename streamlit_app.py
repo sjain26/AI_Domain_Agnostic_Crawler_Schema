@@ -13,9 +13,13 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# API URL - can be configured via environment variable or defaults to localhost
+# API URL - must be configured via environment variable for Streamlit Cloud
 import os
 API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
+
+# Show warning if using default localhost in production
+if API_BASE_URL == "http://localhost:8000" and os.getenv("STREAMLIT_CLOUD"):
+    st.warning("⚠️ API_BASE_URL not set! Please configure it in Streamlit Cloud settings.")
 
 # Custom CSS
 st.markdown("""
@@ -142,11 +146,24 @@ st.markdown('<h1 class="main-header">🕷️ AI_Domain_Agnostic_Crawler</h1>', u
 with st.sidebar:
     st.header("⚙️ Info")
     
+    # Show API URL info
+    if API_BASE_URL != "http://localhost:8000":
+        st.info(f"🔗 API: {API_BASE_URL}")
+    else:
+        st.warning("⚠️ Using default API URL. Set API_BASE_URL environment variable for production.")
+    
     st.header("📚 Quick Links")
     st.markdown(f"""
     - [API Documentation]({API_BASE_URL}/docs)
     - [Health Check]({API_BASE_URL}/health)
     - [API Root]({API_BASE_URL}/)
+    """)
+    
+    st.divider()
+    st.markdown("""
+    ### 📝 Configuration
+    For Streamlit Cloud, set environment variable:
+    - `API_BASE_URL`: Your deployed API server URL
     """)
     
     st.divider()
