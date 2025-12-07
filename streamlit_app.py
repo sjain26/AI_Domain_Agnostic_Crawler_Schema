@@ -533,9 +533,12 @@ with tab5:
                                     st.write(f"**Description:** {page.get('description', 'N/A')[:200]}...")
                                 
                                 with col2:
-                                    st.write(f"**ID:** {page.get('id', 'N/A')[:8]}...")
-                                    if page.get('created_at'):
-                                        st.write(f"**Crawled:** {page.get('created_at')[:10]}")
+                                    page_id = page.get('id', 'N/A')
+                                    st.write(f"**ID:** {page_id[:8]}..." if isinstance(page_id, str) and len(page_id) > 8 else f"**ID:** {page_id}")
+                                    created_at = page.get('created_at')
+                                    if created_at:
+                                        created_str = str(created_at)[:10] if len(str(created_at)) >= 10 else str(created_at)
+                                        st.write(f"**Crawled:** {created_str}")
                                 
                                 with st.expander("View Full Data"):
                                     st.json(page.get('extracted_data', {}))
