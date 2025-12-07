@@ -66,7 +66,7 @@ def init_components():
             groq_api_key=settings.groq_api_key,
             groq_model=settings.groq_model,
             embedding_model=settings.embedding_model,
-            provider=settings.llm_provider
+            llm_provider=settings.llm_provider
         )
         
         # Initialize Storage Manager
